@@ -11,24 +11,28 @@
 --         => 04 Tabelas
 -- ------------------------------------------------------------------------------------
 
-CREATE DATABASE DB
+CREATE DATABASE LendIT_DB
     WITH
         ENCODING = UTF8
         LC_COLLATE = 'pt_BR.UTF-8'
         LC_CTYPE = 'pt_BR.UTF-8'
         TEMPLATE = template0;
 
-\c db
+\c lendit_db
 
 CREATE TABLE "user" (
     userEmail TEXT NOT NULL,
     name TEXT NOT NULL,
-    whatsappNumber NUMERIC NOT NULL,
+    whatsappNumber TEXT NOT NULL,
     password TEXT NOT NULL,
     latitude NUMERIC NULL,
     longitude NUMERIC NULL,
 
-    CONSTRAINT USER_PK PRIMARY KEY (userEmail)
+    CONSTRAINT USER_PK PRIMARY KEY (userEmail),
+
+    CONSTRAINT VALID_EMAIL CHECK (userEmail ~* '^[\w\-\.]+@([\w-]+\.)+[\w-]{2,4}$'),
+    CONSTRAINT VALID_COORDINATES CHECK (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180),
+    CONSTRAINT VALID_WHATSAPP_NUMBER CHECK (whatsappNumber ~* '^(\d{2})(\d{5}|\d{4})(\d{4})$')
 );
 
 CREATE TABLE RATE (
@@ -48,7 +52,10 @@ CREATE TABLE RATE (
     CONSTRAINT RATE_USER_REVIEWER_FK FOREIGN KEY (reviewer)
         REFERENCES "user" (userEmail)
         ON DELETE CASCADE
-        ON UPDATE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT VALID_REVIEWER_USER CHECK (reviewed <> reviewer),
+    CONSTRAINT VALID_STARS CHECK (stars BETWEEN 0 AND 5)
 );
 
 CREATE TABLE PRODUCT_CATEGORY (
@@ -65,7 +72,7 @@ CREATE TABLE REQUEST (
     endDate DATE NOT NULL,
     description TEXT NOT NULL,
     requester TEXT NOT NULL,
-    lender TEXT NOT NULL,
+    lender TEXT NULL,
     productCategoryId SMALLSERIAL NOT NULL,
 
     CONSTRAINT REQUEST_PK PRIMARY KEY (requestId),
@@ -81,5 +88,7 @@ CREATE TABLE REQUEST (
     CONSTRAINT REQUEST_USER_REQUESTER_FK FOREIGN KEY (requester)
         REFERENCES "user" (userEmail)
         ON DELETE CASCADE
-        ON UPDATE CASCADE   
+        ON UPDATE CASCADE,
+
+    CONSTRAINT VALID_LENDER_USER CHECK (requester <> lender)   
 );
